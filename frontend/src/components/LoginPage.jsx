@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "./ui/button.jsx";
 import { Input } from "./ui/input.jsx";
@@ -23,6 +23,7 @@ export function LoginPage({ setUser }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const handleSubmit = async (e) => {
@@ -42,7 +43,8 @@ export function LoginPage({ setUser }) {
         description: "Successfully logged in to your account.",
       });
       
-      navigate("/");
+      // Navigate to the page they were trying to access, or dashboard as default
+      navigate(location.state?.from || "/dashboard");
     } catch (err) {
       toast({
         variant: "destructive",
