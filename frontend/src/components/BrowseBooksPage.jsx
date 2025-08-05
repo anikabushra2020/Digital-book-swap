@@ -5,10 +5,13 @@ import { Button } from "./ui/button.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "../hooks/use-toast.js";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.jsx";
+import { BOOK_SUBJECTS } from "../lib/constants.js";
 
 export function BrowseBooksPage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState("all");
   const [pagination, setPagination] = useState({
     currentPage: 0,
     totalPages: 0,
@@ -22,7 +25,8 @@ export function BrowseBooksPage() {
     try {
       const response = await getBooks({ 
         page, 
-        size: pagination.size 
+        size: pagination.size,
+        subject: selectedSubject === "all" ? null : selectedSubject
       });
       setBooks(response.data.content);
       setPagination(prev => ({
@@ -42,11 +46,11 @@ export function BrowseBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.size, toast]);
+  }, [pagination.size, toast, selectedSubject]);
 
   useEffect(() => {
-    loadBooks();
-  }, [loadBooks]);
+    loadBooks(0); // Reset to first page when filter changes
+  }, [loadBooks, selectedSubject]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < pagination.totalPages) {
@@ -70,6 +74,23 @@ export function BrowseBooksPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Available Books</h1>
         <p className="text-muted-foreground">Browse through our collection of shared books</p>
+      </div>
+
+      {/* Subject Filter */}
+      <div className="flex justify-end">
+        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Filter by subject" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {BOOK_SUBJECTS.map((subject) => (
+              <SelectItem key={subject} value={subject}>
+                {subject}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Books Grid */}
