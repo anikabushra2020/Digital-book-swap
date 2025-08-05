@@ -1,15 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Plus, BookOpen, Edit, Trash2, Eye, Star } from "lucide-react";
+import { Plus, BookOpen, Edit, Trash2, Eye, Star, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@radix-ui/react-select";
 import { Button } from "./ui/button.jsx";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card.jsx";
 import { Badge } from "./ui/badge.jsx";
 import { useToast } from "../hooks/use-toast.js";
-import { getUserBooks, deleteBook } from "../api/index.js";
+import { getUserBooks, deleteBook, updateBookStatus } from "../api/index.js";
 
 export function DashboardPage({ user }) {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({ id: null, type: null });
+  const [sortBy, setSortBy] = useState("newest"); // newest, title, status
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -49,6 +58,7 @@ export function DashboardPage({ user }) {
   }, [loadMyBooks]);
 
   const deleteMyBook = async (id, title) => {
+    setActionLoading({ id, type: 'delete' });
     try {
       await deleteBook(id);
       setBooks(books.filter(book => book.id !== id));
@@ -62,6 +72,31 @@ export function DashboardPage({ user }) {
         title: "Error",
         description: "Failed to delete book. Please try again.",
       });
+    } finally {
+      setActionLoading({ id: null, type: null });
+    }
+  };
+
+  const handleStatusUpdate = async (book) => {
+    const newStatus = book.status === "AVAILABLE" ? "BORROWED" : "AVAILABLE";
+    setActionLoading({ id: book.id, type: 'status' });
+    try {
+      await updateBookStatus(book.id, newStatus);
+      setBooks(books.map(b => 
+        b.id === book.id ? { ...b, status: newStatus } : b
+      ));
+      toast({
+        title: "Status updated",
+        description: `"${book.title}" is now ${newStatus.toLowerCase()}.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update book status. Please try again.",
+      });
+    } finally {
+      setActionLoading({ id: null, type: null });
     }
   };
 
@@ -70,6 +105,18 @@ export function DashboardPage({ user }) {
       deleteMyBook(book.id, book.title);
     }
   };
+
+  const sortedBooks = [...books].sort((a, b) => {
+    switch (sortBy) {
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "status":
+        return a.status.localeCompare(b.status);
+      case "newest":
+      default:
+        return b.id - a.id;
+    }
+  });
 
   const stats = {
     total: books.length,
@@ -95,10 +142,22 @@ export function DashboardPage({ user }) {
           <h1 className="text-3xl font-bold text-foreground">My Book Dashboard</h1>
           <p className="text-muted-foreground">Manage your book listings and track their status</p>
         </div>
-        <Button onClick={() => navigate("/add")} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Book
-        </Button>
+        <div className="flex items-center gap-4">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="title">Title</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => navigate("/add")} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add New Book
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -158,7 +217,7 @@ export function DashboardPage({ user }) {
             </div>
           ) : (
             <div className="space-y-4">
-              {books.map((book) => (
+              {sortedBooks.map((book) => (
                 <div 
                   key={book.id} 
                   className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-border rounded-lg bg-card hover:shadow-soft transition-smooth"
@@ -194,7 +253,24 @@ export function DashboardPage({ user }) {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleStatusUpdate(book)}
+                      disabled={actionLoading.id === book.id}
+                      className={`flex items-center gap-1 ${
+                        book.status === "AVAILABLE" 
+                          ? "text-warning hover:text-warning-foreground hover:bg-warning" 
+                          : "text-success hover:text-success-foreground hover:bg-success"
+                      }`}
+                    >
+                      {actionLoading.id === book.id && actionLoading.type === 'status' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      {book.status === "AVAILABLE" ? "Mark as Borrowed" : "Mark as Returned"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => navigate(`/edit/${book.id}`)}
+                      disabled={actionLoading.id === book.id}
                       className="flex items-center gap-1"
                     >
                       <Edit className="h-3 w-3" />
@@ -204,9 +280,14 @@ export function DashboardPage({ user }) {
                       variant="outline"
                       size="sm"
                       onClick={() => confirmDelete(book)}
+                      disabled={actionLoading.id === book.id}
                       className="flex items-center gap-1 text-destructive hover:text-destructive-foreground hover:bg-destructive"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      {actionLoading.id === book.id && actionLoading.type === 'delete' ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
                       Delete
                     </Button>
                   </div>
