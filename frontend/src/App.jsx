@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Toaster } from "./components/ui/toaster.jsx";
 import { Toaster as Sonner } from "./components/ui/sonner.jsx";
 import { TooltipProvider } from "./components/ui/tooltip.jsx";
@@ -30,21 +30,20 @@ function parseJwt(token) {
   }
 }
 
+function isTokenExpired(token) {
+  const payload = parseJwt(token);
+  if (!payload) return true;
+  
+  // exp is in seconds, Date.now() is in milliseconds
+  const expiry = payload.exp * 1000;
+  return Date.now() >= expiry;
+}
+
 const App = () => {
   const [user, setUser] = useState(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (token) {
-      const payload = parseJwt(token);
-      if (payload) {
-        setUser({ email: payload.sub, id: payload.id });
-      }
-    }
-  }, []);
-
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("jwtToken");
     setUser(null);
     queryClient.clear();
@@ -52,7 +51,49 @@ const App = () => {
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("jwtToken");
+    if (token) {
+      if (isTokenExpired(token)) {
+        logout();
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please log in again to continue.",
+        });
+      } else {
+        const payload = parseJwt(token);
+        if (payload) {
+          setUser({ email: payload.sub, id: payload.id });
+        }
+      }
+    }
+  }, [logout, toast]);
+
+  // Check token expiry periodically
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem("jwtToken");
+      if (token && isTokenExpired(token)) {
+        logout();
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please log in again to continue.",
+        });
+      }
+    };
+
+    const interval = setInterval(checkToken, 60000); // Check every minute
+    window.addEventListener('focus', checkToken); // Check when window regains focus
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkToken);
+    };
+  }, [logout, toast]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -70,10 +111,10 @@ const App = () => {
                   element={<Navigate to="/browse" />} 
                 />
                 
-                {/* Public route for browsing books */}
+                {/* Protected route for browsing books */}
                 <Route 
                   path="/browse" 
-                  element={<BrowseBooksPage />} 
+                  element={user ? <BrowseBooksPage /> : <Navigate to="/login" state={{ from: "/browse" }} />} 
                 />
                 
                 {/* Auth routes - redirect to dashboard if already logged in */}
