@@ -19,6 +19,7 @@ const parseJwt = (token) => {
 
 export function RegisterPage({ setUser }) {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +48,7 @@ export function RegisterPage({ setUser }) {
     setIsLoading(true);
     
     try {
-      const res = await register({ email, password, confirmPassword });
+      const res = await register({ email, password, confirmPassword, name });
       localStorage.setItem("jwtToken", res.data.token);
       const userPayload = parseJwt(res.data.token);
       if (userPayload) {
@@ -71,7 +72,7 @@ export function RegisterPage({ setUser }) {
     }
   };
 
-  const isValidForm = email && password && confirmPassword && 
+  const isValidForm = email && name && password && confirmPassword && 
     passwordRequirements.every(req => req.valid);
 
   return (
@@ -80,6 +81,21 @@ export function RegisterPage({ setUser }) {
       subtitle="Join our community of book lovers and start sharing today"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Full Name</Label>
+          <div className="relative">
+            <Input
+              id="name"
+              type="text"
+              placeholder="Enter your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pl-3"
+              required
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
           <div className="relative">

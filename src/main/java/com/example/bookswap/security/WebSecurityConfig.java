@@ -6,7 +6,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.*;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -22,7 +23,7 @@ public class WebSecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -53,9 +54,20 @@ public class WebSecurityConfig {
                 .requestMatchers(
                     new AntPathRequestMatcher("/api/auth/**"),
                     new AntPathRequestMatcher("/h2-console/**"),
-                    new AntPathRequestMatcher("/api/books", "GET")
+                    new AntPathRequestMatcher("/api/books", "GET"),
+                    new AntPathRequestMatcher("/error")
                 ).permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(handling -> handling
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.getWriter().write("Unauthorized: " + authException.getMessage());
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.getWriter().write("Access Denied: " + accessDeniedException.getMessage());
+                })
             );
 
         // Enable h2-console

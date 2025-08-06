@@ -35,7 +35,17 @@ instance.interceptors.response.use(
       data: error.response?.data,
       message: error.message
     });
-    return Promise.reject(error);
+
+    // Clear token if unauthorized
+    if (error.response?.status === 401) {
+      localStorage.removeItem('jwtToken');
+      // You might want to redirect to login page here
+      window.location.href = '/login';
+    }
+
+    // Format error message
+    const errorMessage = error.response?.data || error.message || 'An unexpected error occurred';
+    return Promise.reject(new Error(errorMessage));
   }
 );
 

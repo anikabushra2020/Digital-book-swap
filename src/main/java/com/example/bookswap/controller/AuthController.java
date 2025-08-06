@@ -38,18 +38,25 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (!signUpRequest.password().equals(signUpRequest.confirmPassword())) {
-            return ResponseEntity.badRequest().body("Passwords do not match");
+        try {
+            if (!signUpRequest.password().equals(signUpRequest.confirmPassword())) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Passwords do not match"));
+            }
+
+            if (userService.getUserByEmail(signUpRequest.email()) != null) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Email is already in use"));
+            }
+
+            String encodedPassword = passwordEncoder.encode(signUpRequest.password());
+            User user = userService.registerUser(signUpRequest.email(), encodedPassword, signUpRequest.name());
+            String token = jwtUtils.generateJwtToken(user.getEmail(), user.getId());
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new JwtResponse(token, "Bearer", user.getEmail(), user.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new MessageResponse("Error registering user: " + e.getMessage()));
         }
-
-        if (userService.getUserByEmail(signUpRequest.email()) != null) {
-            return ResponseEntity.badRequest().body("Email is already in use");
-        }
-
-        User user = userService.registerUser(signUpRequest.email(), signUpRequest.password());
-        String token = jwtUtils.generateJwtToken(user.getEmail(), user.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(new JwtResponse(token, "Bearer", user.getEmail(), user.getId()));
     }
 
     @PostMapping("/login")

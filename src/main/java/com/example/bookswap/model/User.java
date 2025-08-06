@@ -17,6 +17,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private String name;
+
     // Manual getters/setters for compatibility
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -26,6 +29,9 @@ public class User {
     
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
     
     public static UserBuilder builder() { return new UserBuilder(); }
     
@@ -33,16 +39,19 @@ public class User {
         private Long id;
         private String email;
         private String password;
+        private String name;
         
         public UserBuilder id(Long id) { this.id = id; return this; }
         public UserBuilder email(String email) { this.email = email; return this; }
         public UserBuilder password(String password) { this.password = password; return this; }
+        public UserBuilder name(String name) { this.name = name; return this; }
         
         public User build() {
             User user = new User();
             user.setId(this.id);
             user.setEmail(this.email);
             user.setPassword(this.password);
+            user.setName(this.name);
             return user;
         }
     }
