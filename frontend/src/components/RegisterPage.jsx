@@ -8,7 +8,7 @@ import { AuthLayout } from "./AuthLayout.jsx";
 import { useToast } from "../hooks/use-toast.js";
 import { register } from "../api/index.js";
 
-// Mock JWT parser - replace with your actual implementation
+// Mock JWT  - replace with your actual implementation
 const parseJwt = (token) => {
   try {
     return JSON.parse(atob(token.split('.')[1]));
