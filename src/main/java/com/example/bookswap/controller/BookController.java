@@ -35,9 +35,10 @@ public class BookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String subject
+            @RequestParam(required = false) String subject,
+            @RequestParam(required = false) String status
     ) {
-        Page<Book> booksPage = bookService.listBooks(search, subject, page, size);
+        Page<Book> booksPage = bookService.listBooks(search, subject, status, page, size);
         return ResponseEntity.ok(booksPage);
     }
 
@@ -86,7 +87,7 @@ public class BookController {
         }
     }
 
-    // US6: Get user’s own listings
+    // US6: Get user's own listings
     @GetMapping("/users/{id}/books")
     public ResponseEntity<?> getUserBooks(
             @AuthenticationPrincipal UserDetailsImpl userDetails,

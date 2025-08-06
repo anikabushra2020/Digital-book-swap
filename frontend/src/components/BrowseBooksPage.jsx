@@ -12,6 +12,7 @@ export function BrowseBooksPage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [pagination, setPagination] = useState({
     currentPage: 0,
     totalPages: 0,
@@ -23,11 +24,20 @@ export function BrowseBooksPage() {
   const loadBooks = useCallback(async (page = 0) => {
     setLoading(true);
     try {
-      const response = await getBooks({ 
-        page, 
-        size: pagination.size,
-        subject: selectedSubject === "all" ? null : selectedSubject
-      });
+      const params = {
+        page,
+        size: pagination.size
+      };
+
+      // Only add filters if they're not set to 'all'
+      if (selectedSubject !== "all") {
+        params.subject = selectedSubject;
+      }
+      if (selectedStatus !== "all") {
+        params.status = selectedStatus;
+      }
+
+      const response = await getBooks(params);
       setBooks(response.data.content);
       setPagination(prev => ({
         ...prev,
@@ -46,11 +56,11 @@ export function BrowseBooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.size, toast, selectedSubject]);
+  }, [pagination.size, toast, selectedSubject, selectedStatus]);
 
   useEffect(() => {
-    loadBooks(0); // Reset to first page when filter changes
-  }, [loadBooks, selectedSubject]);
+    loadBooks(0); // Reset to first page when filters change
+  }, [loadBooks, selectedSubject, selectedStatus]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < pagination.totalPages) {
@@ -71,34 +81,85 @@ export function BrowseBooksPage() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Available Books</h1>
-        <p className="text-muted-foreground">Browse through our collection of shared books</p>
+      <div className="max-w-3xl">
+        <h1 className="text-3xl font-bold text-foreground mb-3">Digital Book Swap</h1>
+        <div className="space-y-4 text-muted-foreground">
+          <p className="text-lg">
+            Welcome to our student book sharing community! This platform helps students share textbooks and reference materials with their peers, making education more accessible for everyone.
+          </p>
+          <div className="bg-card p-4 rounded-lg border border-border/50">
+            <h2 className="font-semibold text-foreground mb-2">How it works:</h2>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Browse available books by subject</li>
+              <li>Contact book owners directly to arrange borrowing</li>
+              <li>Share your own books when you're not using them</li>
+              <li>Help fellow students access educational resources</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      {/* Subject Filter */}
-      <div className="flex justify-end">
-        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by subject" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
-            {BOOK_SUBJECTS.map((subject) => (
-              <SelectItem key={subject} value={subject}>
-                {subject}
+      {/* Filters */}
+      <div className="flex items-center justify-between mt-8 border-b border-border/50 pb-4">
+        <h2 className="text-xl font-semibold text-foreground">Available Books</h2>
+        <div className="flex gap-4">
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Filter by subject" />
+            </SelectTrigger>
+            <SelectContent 
+              position="popper" 
+              sideOffset={4}
+              align="end"
+              className="bg-white z-50 max-h-[300px] overflow-y-auto"
+            >
+              <SelectItem value="all" className="hover:bg-gray-100">All Subjects</SelectItem>
+              {BOOK_SUBJECTS.map((subject) => (
+                <SelectItem 
+                  key={subject} 
+                  value={subject}
+                  className="hover:bg-gray-100"
+                >
+                  {subject}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent 
+              position="popper" 
+              sideOffset={4}
+              align="end"
+              className="bg-white z-50"
+            >
+              <SelectItem value="all" className="hover:bg-gray-100">All Status</SelectItem>
+              <SelectItem value="AVAILABLE" className="hover:bg-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-success"></span>
+                  Available
+                </div>
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              <SelectItem value="BORROWED" className="hover:bg-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-secondary"></span>
+                  Borrowed
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Books Grid */}
       {books.length === 0 ? (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No books available</h3>
-          <p className="text-muted-foreground">Check back later for new additions to our library.</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">No books found</h3>
+          <p className="text-muted-foreground">Try adjusting your filters or check back later for new additions.</p>
         </div>
       ) : (
         <>

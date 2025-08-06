@@ -22,27 +22,27 @@ public class JwtUtils {
 
     public String generateJwtToken(String email, Long id) {
         return Jwts.builder()
-                .subject(email)
+                .setSubject(email)
                 .claim("id", id)
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(jwtSecretKey)
                 .compact();
     }
 
     public String getEmailFromJwtToken(String token) {
-        return Jwts.parser().verifyWith(jwtSecretKey).build()
-                .parseSignedClaims(token).getPayload().getSubject();
+        return Jwts.parserBuilder().setSigningKey(jwtSecretKey).build()
+                .parseClaimsJws(token).getBody().getSubject();
     }
 
     public Long getUserIdFromJwtToken(String token) {
-        return ((Number) Jwts.parser().verifyWith(jwtSecretKey).build()
-                .parseSignedClaims(token).getPayload().get("id")).longValue();
+        return ((Number) Jwts.parserBuilder().setSigningKey(jwtSecretKey).build()
+                .parseClaimsJws(token).getBody().get("id")).longValue();
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parser().verifyWith(jwtSecretKey).build().parseSignedClaims(authToken);
+            Jwts.parserBuilder().setSigningKey(jwtSecretKey).build().parseClaimsJws(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             // logger can be added here

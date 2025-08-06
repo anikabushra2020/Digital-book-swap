@@ -21,18 +21,38 @@ public class BookService {
         this.bookRepository = bookRepository;
     }
 
-    public Page<Book> listBooks(String search, String subject, int page, int size) {
+    public Page<Book> listBooks(String search, String subject, String status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-
-        if (search != null && !search.isBlank() && subject != null && !subject.isBlank()) {
-            return bookRepository.findAllByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndSubject(search, search, subject, pageable);
-        } else if (search != null && !search.isBlank()) {
-            return bookRepository.findAllByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(search, search, pageable);
-        } else if (subject != null && !subject.isBlank()) {
-            return bookRepository.findAllBySubject(subject, pageable);
-        } else {
-            return bookRepository.findAll(pageable);
+        Book.Status bookStatus = null;
+        
+        // Convert status string to enum if provided
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("all")) {
+            try {
+                bookStatus = Book.Status.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Invalid status, will be ignored
+            }
         }
+
+        // If only status filter is provided
+        if (bookStatus != null && (subject == null || subject.isBlank()) && (search == null || search.isBlank())) {
+            return bookRepository.findAllByStatus(bookStatus, pageable);
+        }
+        
+        // If only subject filter is provided
+        if ((status == null || status.isBlank() || status.equalsIgnoreCase("all")) && 
+            subject != null && !subject.isBlank() && 
+            (search == null || search.isBlank())) {
+            return bookRepository.findAllBySubject(subject, pageable);
+        }
+        
+        // If both subject and status filters are provided
+        if (bookStatus != null && subject != null && !subject.isBlank()) {
+            return bookRepository.findAllBySubjectAndStatus(subject, bookStatus, pageable);
+        }
+
+        // If no filters are provided
+        return bookRepository.findAll(pageable);
     }
 
     public Book addBook(Book book){

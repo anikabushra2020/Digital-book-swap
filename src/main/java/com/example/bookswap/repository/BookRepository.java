@@ -7,14 +7,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BookRepository extends JpaRepository<Book, Long> {
-
-    Page<Book> findAllByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(String title, String author, Pageable pageable);
-
+    // Basic filters
+    Page<Book> findAllByStatus(Book.Status status, Pageable pageable);
     Page<Book> findAllBySubject(String subject, Pageable pageable);
-
-    Page<Book> findAllByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseAndSubject(
-            String title, String author, String subject, Pageable pageable);
-
+    Page<Book> findAllBySubjectAndStatus(String subject, Book.Status status, Pageable pageable);
+    
+    // User's books
     Page<Book> findAllByOwner(User owner, Pageable pageable);
-
 }
